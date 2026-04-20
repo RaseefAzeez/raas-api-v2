@@ -1,4 +1,4 @@
-const { queue } = require("../src/services/instanceService");
+const { queue, completedJobs } = require("../src/services/instanceService");
 
 function processQueue() {
     if (queue.length === 0) {
@@ -7,11 +7,19 @@ function processQueue() {
     }
 
     const job = queue.shift();
+    job.status = 'processing';
     console.log(`Processing job: ${job.job_id}`);
     // Simulate job processing
     setTimeout(() => {
+        job.status = 'completed';
+        completedJobs.push(job);
         console.log(`Job ${job.job_id} completed`);
     }, 1000);
 }
 
 setInterval(processQueue, 2000);
+
+app.get("/jobs", (req, res) => {
+    const response = controller.getJobs();
+    res.json(response);
+});

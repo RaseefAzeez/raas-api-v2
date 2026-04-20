@@ -1,4 +1,5 @@
 const queue = [];
+const completedJobs = [];
 
 function requestReboot(instanceId) {
     const job = {
