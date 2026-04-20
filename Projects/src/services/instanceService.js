@@ -10,3 +10,14 @@ function requestReboot(instanceId) {
     queue.push(job);
     return job;
 }
+
+function getQueue() {
+    return queue;
+}
+
+module.exports = {
+    requestReboot,
+    getQueue,
+    queue
+
+};
