@@ -1,3 +1,5 @@
+const AWS = require("aws-sdk");
+
 const { queue, completedJobs } = require("../src/services/instanceService");
 
 function processQueue() {
@@ -19,7 +21,3 @@ function processQueue() {
 
 setInterval(processQueue, 2000);
 
-app.get("/jobs", (req, res) => {
-    const response = controller.getJobs();
-    res.json(response);
-});
