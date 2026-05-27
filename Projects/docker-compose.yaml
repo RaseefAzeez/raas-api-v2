@@ -1,0 +1,57 @@
+version: '3.8'
+services:
+  raas-redis:
+    image: redis:7.2-alpine
+    container_name: raas-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - raas-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+  api-service:
+    build:
+      context: ./api-service
+      dockerfile: Dockerfile
+    container_name: raas-api-service
+    command: node src/app.js
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - REDIS_HOST=raas-redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./shared:/usr/src/shared
+    networks:
+      - raas-network
+    depends_on:
+      raas-redis:
+        condition: service_healthy
+
+  worker-service:
+    build:
+      context: ./worker-service
+      dockerfile: Dockerfile
+    container_name: raas-worker-service
+    command: node src/app.js
+    environment:
+      - REDIS_HOST=raas-redis
+      - REDIS_PORT=6379
+      - AWS_REGION=us-east-1
+    volumes:
+      - ./shared:/usr/src/shared
+    networks:
+      - raas-network
+    depends_on:
+      raas-redis:
+        condition: service_healthy
+
+networks:
+  raas-network:
+    driver: bridge

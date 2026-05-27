@@ -1,37 +1,51 @@
-const AWS = require("aws-sdk");
+// worker-service/src/workers/operationWorker.js
+const { Worker } = require('bullmq');
 
-const ec2 = new AWS.EC2({
-    region: "us-east-1"
-});
+// Pull Redis connection parameters from environment variables
+const REDIS_HOST = process.env.REDIS_HOST || '127.0.0.1';
+const REDIS_PORT = process.env.REDIS_PORT || 6379;
 
-const { queue, completedJobs } = require("../src/services/instanceService");
+/**
+ * 1. Initialize the BullMQ Worker Engine.
+ */
+const operationWorker = new Worker('operation-queue', async (job) => {
+    const { action, instanceId, requestedBy } = job.data;
 
-function processQueue() {
-    if (queue.length === 0) {
-        console.log("No jobs in the queue. Waiting...");
-        return;
-    }
+    console.log(`\n[WORKER PROCESSING] 🟢 Job Received! ID: ${job.id}`);
+    console.log(` -> Action: ${action}`);
+    console.log(` -> Target Asset: ${instanceId}`);
+    console.log(` -> Authorized By: ${requestedBy}`);
 
-    const job = queue.shift();
-    job.status = 'processing';
-    console.log(`Processing job: ${job.job_id}`);
-    // Simulate job processing
+    try {
+        // 2. Simulate execution of AWS SDK client actions
+        switch (action) {
+            case 'START':
+                console.log(`[AWS SDK CALL]: ec2Client.send(new StartInstancesCommand({ InstanceIds: ['${instanceId}'] }))`);
+                console.log(`[STATUS CHANGE]: Asset ${instanceId} state changed to 'RUNNING'.`);
+                break;
 
-    ec2.rebootInstances({
-        InstanceIds: [job.instance_id]
-    }, (err, data) => {
+            case 'STOP':
+                console.log(`[AWS SDK CALL]: ec2Client.send(new StopInstancesCommand({ InstanceIds: ['${instanceId}'] }))`);
+                console.log(`[STATUS CHANGE]: Asset ${instanceId} state changed to 'STOPPED'.`);
+                break;
 
-        if (err) {
-            job.status = 'failed';
-            console.log("Error rebooting instance:", err);
-        } else {
-            job.status = 'completed';
-            completedJobs.push(job);
-            console.log(`Reboot triggered for ${job.instance_id}`);
+            default:
+                throw new Error(`Unsupported lifecycle action: '${action}'.`);
         }
 
-    });
-}
+        console.log(`[WORKER SUCCESS] ✅ Job ID ${job.id} processed successfully.`);
+        return { success: true, target: instanceId };
 
-setInterval(processQueue, 2000);
+    } catch (error) {
+        console.error(`[WORKER CORE ERROR]: Processing failed for Job ID ${job.id}: ${error.message}`);
+        throw error;
+    }
+}, {
+    connection: {
+        host: REDIS_HOST,
+        port: parseInt(REDIS_PORT, 10)
+    },
+    concurrency: 5
+});
 
+module.exports = { operationWorker };

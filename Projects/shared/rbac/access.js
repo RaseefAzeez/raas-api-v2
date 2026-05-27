@@ -1,5 +1,5 @@
 // shared/rbac/access.js
-const groupMappings = require('./groups');
+const groupMappings = require('./group');
 
 /**
  * Evaluates if a user's security token groups are authorized to interact with a target resource ID.
