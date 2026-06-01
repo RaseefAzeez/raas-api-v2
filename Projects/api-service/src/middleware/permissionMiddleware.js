@@ -1,7 +1,7 @@
 // api-service/src/middleware/permissionMiddleware.js
 
 // 1. Look outside this app container and pull the engine from the shared folder volume mapping
-const { isAuthorized } = require('/usr/src/shared/rbac/access');
+const { isAuthorized } = require('/app/shared/rbac/access');
 
 /**
  * Express Middleware to intercept network requests and run the shared RBAC logic.
@@ -25,7 +25,7 @@ function checkPlatformPermissions(req, res, next) {
             });
         }
 
-        // 3. Success! Move to the next step (the queue)
+        // 3. Success! Move to the next step (the queue / controller execution)
         console.log(`[SECURITY CLEARANCE]: Access verified. Forwarding request.`);
         next();
 
@@ -38,4 +38,5 @@ function checkPlatformPermissions(req, res, next) {
     }
 }
 
+// Exported as an object containing the middleware function wrapper
 module.exports = { checkPlatformPermissions };
