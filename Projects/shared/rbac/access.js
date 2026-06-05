@@ -4,7 +4,7 @@ const groupMappings = require('./group');
 /**
  * Evaluates if a user's security token groups are authorized to interact with a target resource ID.
  * @param {string|string[]} userGroups - Group or array of groups extracted from the Cognito token
- * @param {string} instanceId - Target AWS EC2 Instance ID
+ * @param {string} instanceId - Target AWS EC2 Instance ID here
  * @returns {boolean}
  */
 function isAuthorized(userGroups, instanceId) {
