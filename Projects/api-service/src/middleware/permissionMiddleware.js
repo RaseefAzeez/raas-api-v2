@@ -1,42 +1,50 @@
 // api-service/src/middleware/permissionMiddleware.js
 
-// 1. Look outside this app container and pull the engine from the shared folder volume mapping
-const { isAuthorized } = require('/app/shared/rbac/access');
-
 /**
- * Express Middleware to intercept network requests and run the shared RBAC logic.
+ * RaaS 2.0 Security Interceptor
+ * Ports the RaaS 1.0 ABAC logic: Matches authenticated Cognito JWT groups 
+ * against the specific resource tags of the target infrastructure.
  */
 function checkPlatformPermissions(req, res, next) {
     try {
-        // Pull Cognito group claims from request headers or body
-        const userGroups = req.headers['x-cognito-groups'] || req.body.userGroups;
-        const { instanceId } = req.body;
+        // 1. Extract claims forwarded from your Cognito authentication layer
+        // Locally, we inspect headers or fallback to a test request body
+        const userGroups = req.headers['x-cognito-groups'] || req.body.userGroups || [];
+        const { instanceId, instanceEnvironmentTag } = req.body;
 
-        console.log(`[API GATEWAY INTERCEPTOR]: Running security validation...`);
+        console.log(`\n[SECURITY INTERCEPTOR]: Evaluating access rules for instance: ${instanceId}`);
+        console.log(`[SECURITY INTERCEPTOR]: User Cognito Groups:`, userGroups);
 
-        // 2. Pass the data straight to the shared folder engine
-        const hasAccess = isAuthorized(userGroups, instanceId);
-
-        if (!hasAccess) {
-            console.warn(`[SECURITY REJECTION]: Access blocked for instance ${instanceId}`);
-            return res.status(403).json({
+        if (!instanceId || !instanceEnvironmentTag) {
+            return res.status(400).json({
                 success: false,
-                message: "Access Denied: Your assigned Cognito group boundaries do not permit operations on this asset."
+                message: "Missing validation context: instanceId and instanceEnvironmentTag are required."
             });
         }
 
-        // 3. Success! Move to the next step (the queue / controller execution)
-        console.log(`[SECURITY CLEARANCE]: Access verified. Forwarding request.`);
+        // 2. RaaS 1.0 Core Matching Rule: 
+        // Checks if the array of user groups contains the required environment tag string
+        const hasAccess = userGroups.includes(instanceEnvironmentTag);
+
+        if (!hasAccess) {
+            console.warn(`[SECURITY REJECTION]: Access blocked! Groups do not match asset tag: ${instanceEnvironmentTag}`);
+            return res.status(403).json({
+                success: false,
+                message: `Access Denied: Your privileges do not match the target asset environment tag (${instanceEnvironmentTag}).`
+            });
+        }
+
+        // 3. Security Clearance Granted
+        console.log(`[SECURITY CLEARANCE]: Tag match verified successfully. Forwarding request.`);
         next();
 
     } catch (error) {
-        console.error(`[INTERCEPTOR ERROR]: ${error.message}`);
+        console.error(`[INTERCEPTOR CRITICAL ERROR]: ${error.message}`);
         return res.status(500).json({
             success: false,
-            message: "Internal Security Error occurred during permission verification."
+            message: "Internal Security Error occurred during operational access check."
         });
     }
 }
 
-// Exported as an object containing the middleware function wrapper
 module.exports = { checkPlatformPermissions };
