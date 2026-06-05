@@ -8,14 +8,24 @@ const { checkPlatformPermissions } = require("./middleware/permissionMiddleware"
 app.use(express.json());
 
 // Applies the security permission validation layer directly to the reboot routing endpoint
-app.post("/reboot/:id", checkPlatformPermissions, (req, res) => {
-    const response = controller.rebootInstance(req);
+app.post("/reboot/:id", checkPlatformPermissions, async (req, res) => {
+    try {
+        const response = await controller.rebootInstance(req);
 
-    if (response.status) {
-        return res.status(response.status).json(response);
+        if (response.status) {
+            return res.status(response.status).json(response);
+        }
+
+        res.json(response);
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
-
-    res.json(response);
 });
 
 app.get("/jobs", (req, res) => {

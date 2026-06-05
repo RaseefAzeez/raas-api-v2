@@ -29,6 +29,12 @@ const operationWorker = new Worker('operation-queue', async (job) => {
                 console.log(`[STATUS CHANGE]: Asset ${instanceId} state changed to 'STOPPED'.`);
                 break;
 
+            case 'REBOOT':
+                console.log(
+                    `[SAFE MODE] Would reboot instance ${instanceId}`
+                );
+                break;
+
             default:
                 throw new Error(`Unsupported lifecycle action: '${action}'.`);
         }

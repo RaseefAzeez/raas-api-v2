@@ -2,10 +2,13 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY worker-service/package*.json ./
 
 RUN npm install --production
 
-COPY . .
+COPY worker-service ./worker-service
+COPY shared ./shared
 
-CMD [ "node", "src/workers/operationWorker.js" ]
+WORKDIR /app/worker-service
+
+CMD ["node", "src/workers/operationWorker.js"]

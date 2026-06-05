@@ -2,8 +2,9 @@
 
 // Local state array to track jobs for your /jobs endpoint during testing
 const localJobHistory = [];
+const { operationQueue } = require("../services/queueService");
 
-function rebootInstance(req) {
+async function rebootInstance(req) {
     const { instanceId, instanceEnvironmentTag } = req.body;
 
     console.log(`[API CONTROLLER]: Queueing reboot job into Redis broker for: ${instanceId}`);
@@ -18,6 +19,12 @@ function rebootInstance(req) {
 
     // Store in historical record array
     localJobHistory.push(newJob);
+
+    await operationQueue.add("reboot", {
+        action: "REBOOT",
+        instanceId,
+        requestedBy: "test-user"
+    });
 
     // 💡 LIVE RUNTIME INTEGRATION: This is where we trigger your BullMQ queue worker hook:
     // await rebootQueue.add(newJob);
